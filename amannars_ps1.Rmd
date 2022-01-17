@@ -1,0 +1,258 @@
+---
+title: "Problem Set-1"
+author: "Aravind Mannarswamy"
+date: "01/16/2022"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 6
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+---
+
+\newpage  
+
+```{r header, echo = FALSE, message = FALSE, warning = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE,
+                      echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache.lazy = FALSE, 
+                      fig.align = "center", 
+                      fig.width = 6, 
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(gridExtra)
+library(openxlsx)
+library(DT)
+```
+
+# Lottery Payout  
+
+```{r}
+df1 = data.frame(Decision_Number = seq(1,10), Probability = seq(0.1,1,0.1))
+df1 %<>% 
+  mutate(Safe_Lottery_Pay = 2*Probability + 1.6*(1-Probability),
+         Risky_Lottery_Pay = 3.85*Probability + 0.1*(1-Probability))
+df1 %>% 
+  knitr::kable()
+```
+
+```{r}
+
+df1 %>% 
+  select(-Probability) %>% 
+  pivot_longer(!Decision_Number, names_to = "Lottery", values_to = "Payoff") %>% 
+  ggplot()+
+  aes(x = Decision_Number, y = Payoff, color = Lottery, group = Lottery)+
+  geom_line()+
+  theme_bw()+
+  theme(panel.grid = element_blank(),
+        legend.position = c(.15,.85))+
+  scale_y_continuous(labels = comma_format(prefix = "$"))+
+  scale_x_continuous(breaks = seq(1,10,1))+
+  geom_vline(xintercept = c(4,5), linetype = "dashed", color = "dodgerblue")
+
+```
+
+# CRRA     
+
+$U(x) = \frac{x^{1-r}}{1-r}$   
+
+
+## CRRA: r = 0.3   
+```{r}
+df1 %<>% 
+  mutate(CRRA_Safe_03 = Probability * (2^0.7)/(0.7) + (1-Probability) * (1.6^0.7)/(0.7),
+         CRRA_Risk_03 = Probability * (3.85^0.7)/(0.7) + (1-Probability) * (0.1^0.7)/(0.7)) 
+
+df1 %>% 
+  select(Decision_Number, Probability, CRRA_Safe_03, CRRA_Risk_03) %>% 
+  mutate(choice = ifelse(CRRA_Safe_03 <= CRRA_Risk_03, "CRRA Risk", "CRRA Safe")) %>% 
+  knitr::kable()
+```
+Overall for someone with r = 0.3, 5 of 10 choices will be safe.  
+   
+## CRRA: r = 0.6   
+
+```{r}
+df1 %<>% 
+  mutate(CRRA_Safe_06 = Probability * (2^0.4)/(0.4) + (1-Probability) * (1.6^0.4)/(0.4),
+         CRRA_Risk_06 = Probability * (3.85^0.4)/(0.4) + (1-Probability) * (0.1^0.4)/(0.4)) 
+
+df1 %>% 
+  select(Decision_Number, Probability, CRRA_Safe_06, CRRA_Risk_06) %>% 
+  mutate(choice = ifelse(CRRA_Safe_06 <= CRRA_Risk_06, "CRRA Risk", "CRRA Safe")) %>% 
+  knitr::kable()
+```
+Overall for someone with r = 0.6, 6 of 10 choices will be safe.  
+
+# Small payoffs  
+   
+```{r}
+df3 = read.xlsx(xlsxFile = "lottery_small.xlsx") %>% 
+  mutate(payoff = 'small')
+
+df3 %<>% 
+  mutate(Safe_Choices = Decision_1 + Decision_2 + Decision_3 + Decision_4 + Decision_5 + 
+           Decision_6 + Decision_7 + Decision_8 + Decision_9 + Decision_10 ) 
+
+summary(df3$Safe_Choices)
+```
+
+# Medium and High Payoffs   
+
+## Medium payoff  
+
+```{r}
+
+df41 = read.xlsx(xlsxFile = "lottery_medium.xlsx") %>% 
+  mutate(payoff = 'medium')
+
+df41 %<>% 
+  mutate(Safe_Choices = Decision_1 + Decision_2 + Decision_3 + Decision_4 + Decision_5 + 
+           Decision_6 + Decision_7 + Decision_8 + Decision_9 + Decision_10 ) 
+
+summary(df41$Safe_Choices)
+```
+
+## High payoff  
+
+```{r}
+
+df42 = read.xlsx(xlsxFile = "lottery_high.xlsx") %>% 
+  mutate(payoff = 'high')
+
+df42 %<>% 
+  mutate(Safe_Choices = Decision_1 + Decision_2 + Decision_3 + Decision_4 + Decision_5 + 
+           Decision_6 + Decision_7 + Decision_8 + Decision_9 + Decision_10 ) 
+
+summary(df42$Safe_Choices)
+```
+
+
+```{r}
+df3 %>% 
+  bind_rows(df41) %>% 
+  bind_rows(df42) %>% 
+  group_by(payoff) %>% 
+  summarize(min_safe = min(Safe_Choices),
+            Q1_safe = quantile(Safe_Choices,0.25),
+            median_safe = quantile(Safe_Choices,0.5),
+            mean_safe = mean(Safe_Choices),
+            Q3_safe = quantile(Safe_Choices,0.75),
+            max_safe = max(Safe_Choices),
+            .groups = 'drop') %>% 
+  pivot_longer(!payoff, names_to = 'statistic', values_to = 'value' ) %>% 
+  mutate(payoff = factor(payoff, levels = c('small','medium','high'), ordered = TRUE)) %>% 
+  ggplot()+
+  aes(x = payoff, y = value, group = statistic, color = statistic)+
+  geom_line()+
+  geom_point()+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  ggtitle(label = "Safe Choice as a function of payoff")+
+  xlab("Payoff Levels")+
+  ylab("Number of Safe Choices")+
+  scale_y_continuous(breaks = seq(0,9,1))
+
+
+```
+
+Key takeaway:  
+1. It appears that some people are always either risk taking or always risk averse(refer to min_safe and max_safe on the figure). In some aspect, it really didnt make much sense at all as to why they would choose no safe choice or all safe choice.    
+2. However, there are some people who reduced their appetite for risk as the payoff increased. It could be because of the utility associated with it(mean_safe and median_safe).   
+3. One of the reasons why the median didnt change might have been due to the expected value of the payoffs. Almost half the people didnt make any change to their choices even as the payoffs increased.  
+
+
+# Pairwise choices  
+
+```{r}
+df5 = read.xlsx(xlsxFile = "pairwise_choices.xlsx")
+df5 %>% 
+  group_by(Treatment, Choice_Number) %>% 
+  summarize(Choice_A = sum(Choice_A),
+            Choice_B = 46-Choice_A,
+            .groups = 'drop') %>% 
+  knitr::kable()
+```
+
+\newpage  
+
+# Allais Paradox   
+
+![Problem 6 Choices](prob6.png)
+
+## Allais Paradox   
+
+1. At a high level, this involves choosing a payout with certainty but choosing the opposite over a comparable situation constitutes this paradox.   
+2. In the case in point, there is 100% chance to win \$30 by choosing option A. Multiplying both the Option A and Option B round-1 payouts by 25%, we get the second round. So choosing Option-A for the first round and choosing Option-B for the second round constitutes this paradox.   
+
+```{r}
+df5 %>% 
+  filter(Treatment ==1) %>% 
+  select(-Treatment, -Decision) %>% 
+  pivot_wider(names_from = Choice_Number, values_from = Choice_A) %>% 
+  mutate(switched = ifelse(`1` == 1 & `2` == 0, 'Allais Paradox',
+                           ifelse(`1` == 0 & `2` == 1, 'Reverse Allais Paradox','Consistent'))) %>% 
+  group_by(switched) %>% 
+  summarize(Count = n()) %>% 
+  kable()
+
+```
+
+
+It appears that 34/46 are consistent with their choices between the two choices and didnt succumb to the Allais paradox. A small but significant portion do suffer from the paradox (11/46). There is only one participant who chose the reverse of Allais paradox situation.   
+
+
+
+# Risk Averse or Risk Tolerant  
+
+![Problem 6 Choices](prob7.png)
+
+\newpage    
+   
+## Riskier Choice   
+
+19 Students made the choice to be risk tolerant in the loss domain(they chose riskier choice with the potential lose \$40) while 25 students were risk tolerant in the gains domain(they chose the risker choice with the potential to gain \$40). 
+
+## Risk averse in gains and tolerant in losses   
+
+```{r}
+df5 %>% 
+  filter(Choice_Number %in% c(1,3) ) %>% 
+  select(-Choice_Number, -Decision) %>% 
+  pivot_wider(names_from = Treatment, values_from = Choice_A) %>% 
+  mutate(gains = ifelse(`1` == 1, 'Risk Averse','Risk Tolerant'),
+         losses = ifelse(`2` == 1, 'Risk Averse','Risk Tolerant')) %>% 
+  filter(`1` == 1 & `2` == 0) %>% 
+  head(10) %>% 
+  kable()
+```
+
+
+```{r}
+df5 %>% 
+  filter(Choice_Number %in% c(1,3) ) %>% 
+  select(-Choice_Number, -Decision) %>% 
+  pivot_wider(names_from = Treatment, values_from = Choice_A) %>% 
+  mutate(gains = ifelse(`1` == 1, 'Risk Averse','Risk Tolerant'),
+         losses = ifelse(`2` == 1, 'Risk Averse','Risk Tolerant')) %>% 
+  filter(`1` == 1 & `2` == 0) %>% 
+  tail(7) %>% 
+  kable()
+```
+
+17 of the 46 students were risk averse in the gains territory(Treatment-1 choosing Option-A) but risk tolerant in the losses territory(Treatment-2 choosing Option-B).  
+
+
+## Key Takeaway   
+
+1. The students who made this switch are inconsistent with their choices when it comes to gains and losses. They do not adhere to the same expected value principle in both the cases. When there is a gain, they tend to play it safely but in the face of a loss, they decide to gamble instead of face a loss for sure. Though in theory it is contradictory to the choice in each of these two cases.   
+
