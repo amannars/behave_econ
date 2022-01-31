@@ -1,0 +1,287 @@
+---
+title: "Problem Set-3"
+author: "Aravind Mannarswamy"
+date: "01/30/2022"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 6
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+---
+
+
+```{r header, echo = FALSE, message = FALSE, warning = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE,
+                      echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache.lazy = FALSE, 
+                      fig.align = "center", 
+                      fig.width = 6, 
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(gridExtra)
+library(openxlsx)
+library(DT)
+
+df = read.xlsx(xlsxFile = "Lab3data.xlsx")
+```
+
+\newpage  
+
+# Equilibrium of trust game   
+
+1. Based on backward induction, the second player wants to keep all the money received and do not have incentive to send money back. Realizing this, the first player now doesnt want to send any money at all.  
+2. Thus the equilibrium is the first player (sender) keeps the \$10 and the receiver doesnt send any money back at all.  
+
+# Utility function based   
+
+$U_i = x_i - \alpha_i.max[x_j-x_i,0] - \beta_i.max[x_i-x_j,0]$    
+
+```{r}
+xj = seq(0,30)
+xi = 30-xj
+alpha = 1
+beta = 0.6
+xj_xi = xj - xi
+xi_xj = xi - xj
+df2 = data.frame(xi = xi, xj = xj, xj_xi = xj_xi, xi_xj = xi_xj) %>% 
+  mutate(t2 = ifelse(0 > xj_xi, 0, xj_xi),
+         t3 = ifelse(0 > xi_xj, 0, xi_xj),
+         Ui = xi - t2 - 0.6*t3)
+df2 %>% 
+  ggplot()+
+  aes(x = xi, y = Ui)+
+  geom_point(color = "dodgerblue")+
+  geom_line(group = 1, color = "red")+
+  theme_bw()+
+  xlab("Monetary earnings of Individual 'i'")+
+  ylab("Utility of Individual 'i'")+
+  scale_x_continuous(breaks = seq(0,30,5))+
+  ggtitle(label = "Monetary income Vs Utility of 'i'")
+```
+
+Solving of mathematically(and represented through figure), the ideal course of action of this individual would be pass back \$15 to the first individual 'j'.   
+
+\newpage  
+
+# Amount passed from first mover to the second   
+
+## Average amount passed  
+
+```{r}
+
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+df3_summary = df %>% 
+  filter(Round <= 6) %>% 
+  group_by(Round) %>% 
+  summarize(average = round(mean(Amount_Passed),2),
+            highest = max(Amount_Passed),
+            lowest = min(Amount_Passed),
+            modal = getmode(Amount_Passed),
+            no_of_eq = sum(Amount_Passed == 0),
+            .groups = 'drop') 
+
+df3_summary %>% kable()
+  
+```
+
+
+```{r}
+print("Round-1")
+df %>% 
+  filter(Round == 1) %>% 
+  pull(Amount_Passed) %>% 
+  sort()
+
+print("Round-2")
+df %>% 
+  filter(Round == 2) %>% 
+  pull(Amount_Passed) %>% 
+  sort()
+
+print("Round-3")
+df %>% 
+  filter(Round == 3) %>% 
+  pull(Amount_Passed) %>% 
+  sort()
+
+print("Round-4")
+df %>% 
+  filter(Round == 4) %>% 
+  pull(Amount_Passed) %>% 
+  sort()
+
+print("Round-5")
+df %>% 
+  filter(Round == 5) %>% 
+  pull(Amount_Passed) %>% 
+  sort()
+
+print("Round-6")
+df %>% 
+  filter(Round == 6) %>% 
+  pull(Amount_Passed) %>% 
+  sort()
+
+```
+
+
+Please note that in Rounds 2 and 4, they are bimodal with two modes. One at 0 and the other at 10.  
+
+```{r}
+df3_summary %>%
+  select(Round, average) %>%
+  ggplot()+
+  aes(x = Round, y = average)+
+  geom_point(color = "dodgerblue")+
+  geom_line(group = 1, color = "red")+
+  scale_x_continuous(breaks = seq(1,6,1))+
+  scale_y_continuous(limits = c(-1,10))+
+  theme_bw()+
+  xlab("Round")+
+  ylab("Average Amount Passed from 1 to 2")+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red")
+
+```
+
+The average amount passed decreased in general from Rounds 1 to 6 with slight noisy increase in 4 and 6.  
+
+
+# Amount passed from first mover to the second   
+
+## Average amount passed  
+
+```{r}
+
+
+df4_summary = df %>% 
+  filter(Round <= 6) %>% 
+  group_by(Round) %>% 
+  summarize(average = round(mean(Amount_Returned),2),
+            highest = max(Amount_Returned),
+            lowest = min(Amount_Returned),
+            modal = getmode(Amount_Returned),
+            no_of_eq = sum(Amount_Returned == 0),
+            .groups = 'drop') 
+
+df4_summary %>% kable()
+  
+```
+
+
+```{r}
+print("Round-1")
+df %>% 
+  filter(Round == 1) %>% 
+  pull(Amount_Returned) %>% 
+  sort()
+
+print("Round-2")
+df %>% 
+  filter(Round == 2) %>% 
+  pull(Amount_Returned) %>% 
+  sort()
+
+print("Round-3")
+df %>% 
+  filter(Round == 3) %>% 
+  pull(Amount_Returned) %>% 
+  sort()
+
+print("Round-4")
+df %>% 
+  filter(Round == 4) %>% 
+  pull(Amount_Returned) %>% 
+  sort()
+
+print("Round-5")
+df %>% 
+  filter(Round == 5) %>% 
+  pull(Amount_Returned) %>% 
+  sort()
+
+print("Round-6")
+df %>% 
+  filter(Round == 6) %>% 
+  pull(Amount_Returned) %>% 
+  sort()
+
+```
+
+
+```{r}
+df4_summary %>%
+  select(Round, average) %>%
+  ggplot()+
+  aes(x = Round, y = average)+
+  geom_point(color = "dodgerblue")+
+  geom_line(group = 1, color = "red")+
+  scale_x_continuous(breaks = seq(1,6,1))+
+  scale_y_continuous(limits = c(-1,10))+
+  theme_bw()+
+  xlab("Round")+
+  ylab("Average Amount Returned from 2 to 1")+
+  geom_hline(yintercept = 0, linetype = "dashed", color = "red")
+
+```
+
+The average amount returned stayed constant in general from Rounds 1 to 6 with slight noisy 'drops' in 3 and 5.  
+
+\newpage  
+
+# Repeated trust games between the same set of players      
+
+```{r}
+df5_summary_df = df %>% 
+  group_by(Round) %>% 
+  summarize(average_passed = round(mean(Amount_Passed),2),
+            average_returned = round(mean(Amount_Returned),2),
+            .groups = 'drop') %>% 
+  mutate(group = ifelse(Round < 7, 'First_6_Rounds','After_6_Rounds')) %>% 
+  pivot_longer(!c(Round, group), names_to = 'movement', values_to = 'average')
+
+df %>% 
+  group_by(Round) %>% 
+  summarize(average_passed = round(mean(Amount_Passed),2),
+            average_returned = round(mean(Amount_Returned),2),
+            .groups = 'drop') %>% 
+  mutate(group = ifelse(Round < 7, 'First_6_Rounds','After_6_Rounds')) %>% 
+  kable()
+  
+
+df5_summary_df %>% 
+  ggplot()+
+  aes(x = Round, y = average, color = movement,group = movement,  shape = group)+
+  geom_point(size = 5)+
+  geom_line()+
+  theme_bw()+
+  theme(panel.grid = element_blank())+
+  scale_x_continuous(breaks = seq(1,15,1))+
+  scale_y_continuous(breaks = seq(0,10,1))+
+  xlab("Round")+
+  ylab("Average Amount Moved")
+
+```
+
+Key Points:  
+1. Yes, the results were different between the first 6 rounds and the later rounds.  
+2. Referencing the table and the graph, it is evident that when the games are repeated with the same player, the amount of **'trust'** expressed through the money movement, is much higher in the later games compared to the first 6.  
+
+# Repeated game strategies   
+
+1. No, the set of equilibrium strategies between the infinite version of the game and a single round game cannot be the same. In the case of an infinite or indefinite version of the game, could have very different optimal strategies. In particular, the players get a chance to adjust and since there is no finite end, the backward induction is not applicable. In simple terms, if a player knows that the game they are in is the last round, they would choose to be selfish and not move any money at all.   
+2. Referencing to the figure from the previous answer, roughly, the total benefit for both the players for the repeated games was much higher than the single game. In the repeated trust game, on an average about \$7 was passed and the receiver got about \$21. By sending back about \$10, both the parties were better off and in a way ended up with equal amounts.  
+
+

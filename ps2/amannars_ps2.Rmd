@@ -12,7 +12,6 @@ output:
     toc_depth: 3
 ---
 
-\newpage  
 
 ```{r header, echo = FALSE, message = FALSE, warning = FALSE}
 
@@ -31,5 +30,194 @@ library(scales)
 library(gridExtra)
 library(openxlsx)
 library(DT)
+
+df = read.xlsx(xlsxFile = "lab2data.xlsx")
 ```
+
+\newpage  
+
+
+# First 5 periods: Nash Equilibrium   
+  
+```{r}
+game1_df = expand.grid(row_player = c('Choice1','Choice2'),
+                       col_player = c('Choice1','Choice2'),
+                       pay_out_player = c('row','column'),
+                       KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+game1_df$pay_out_value = c(10,15,0,2,10,0,15,2)
+
+game1_df %>% kable()
+```
+
+
+1. The Nash equilibrium will be *both the players choosing the 2nd option*.   
+2. According to the text books, a Nash equilibrium is a strategy where no player has an incentive to move away considering the opponents potential choices.  
+3. For the row player, the dominant strategy would be to choose the 2nd row. Because the player stands to gain 15 or 2 compared to the top row which would have given 10 or 0.  
+4. The same logic applies for the column player as well.   
+5. So in this case, the Nash equilibrium will be both the players choosing the 2nd option.   
+
+
+# Second 5 periods: Nash Equilibrium   
+  
+```{r}
+game2_df = expand.grid(row_player = c('Choice1','Choice2'),
+                       col_player = c('Choice1','Choice2'),
+                       pay_out_player = c('row','column'),
+                       KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+game2_df$pay_out_value = c(10,25,0,8,10,0,25,8)
+
+game2_df %>% kable()
+```
+
+
+1. The Nash equilibrium doesnt change from the previous part.  
+2. However, the players now have more incentive to choose the 2nd choice because their incentive and penalty to choose the 1st option is very low and high respectively. So this puts the players in a position to always choose the 2nd option.   
+
+# First 10 rounds: Nash equilibirum  
+
+```{r}
+first10df = df %>% 
+  filter(Round <= 10, Decision == 2) %>% 
+  group_by(Round) %>% 
+  summarize(Choice2 = n(), .groups = 'drop') %>% 
+  mutate(set = ifelse(Round < 6, 'First5','Second5'),
+         Round = ifelse(Round <6, Round, Round - 5))
+
+first10df %>% 
+  mutate(Round = as.character(Round)) %>% 
+  ggplot()+
+  aes(x = Round, y = Choice2, color = set, group = set)+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  theme(legend.title = element_blank(),
+        legend.position = c(0.9,0.15),
+        panel.grid = element_blank())+
+  scale_x_discrete(labels=c("1" = "1 or 6", 
+                            "2" = "2 or 7",
+                            "3" = "3 or 8",
+                            "4" = "4 or 9",
+                            "5" = "5 or 10"))+
+  ggtitle(label = "First 10 Rounds",subtitle = "The 2nd 5 rounds have more people choosing Nash equilibirum")
+```
+
+1. The 2nd 5 rounds correspond to the Nash equilibrium more often than the first 5 rounds.  
+2. The key difference is in the payoffs between the two rounds. In the 2nd 5 rounds, the incentive to cooperate is very low but the incentive to not cooperate is very high.  
+3. Yes for the 1st 5 rounds. For the first 5 rounds, it got closer to the Nash equilibrium towards the later periods but for the 2nd 5 rounds, it got there much quicker.  
+
+# Same opponent Vs different opponent   
+
+
+```{r}
+same_not_same_df = df %>% 
+  filter(Round %in% c(1,2,3,4,5,11,12,13,14,15), Decision == 2) %>% 
+  group_by(Round) %>% 
+  summarize(Choice2 = n(), .groups = 'drop') %>% 
+  mutate(set = ifelse(Round < 6, 'First5','Third5'),
+         Round = ifelse(Round <6, Round, Round - 10))
+
+same_not_same_df %>% 
+  mutate(Round = as.character(Round)) %>% 
+  ggplot()+
+  aes(x = Round, y = Choice2, color = set, group = set)+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  theme(legend.title = element_blank(),
+        legend.position = c(0.9,0.15),
+        panel.grid = element_blank())+
+  scale_x_discrete(labels=c("1" = "1 or 11", 
+                            "2" = "2 or 12",
+                            "3" = "3 or 13",
+                            "4" = "4 or 14",
+                            "5" = "5 or 15"))+
+  ggtitle(label = "First 5 Rounds Vs Third 5 Rounds",subtitle = "1st five: New Opponent; 2nd five: Same Opponent")
+```
+
+Reasoning for the difference:  
+1. When the players are new for every round, it is a 'strictly' simultaneous game with almost no room for cooperation.  
+2. However, if the players are same for every round, there is a tendency to coordinate, at least in the initial stages. But when one of the players start to not cooperate, then the non-cooperation becomes the dominant strategy.  
+
+# Rounds 16-20 periods: Nash Equilibrium   
+  
+```{r}
+game3_df = expand.grid(row_player = c('Choice1','Choice2'),
+                       col_player = c('Choice1','Choice2'),
+                       pay_out_player = c('row','column'),
+                       KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+game3_df$pay_out_value = c(20,10,0,3,20,0,10,3)
+
+game3_df %>% kable()
+```
+
+\newpage  
+  
+
+1. The pure Nash equilibrium will be *both the players choosing the 1st option* and *both the players choosing the 2nd option*.   
+2. For the row player, the top row provides a payoff of 20 or 0. However, for those payoff boxes, the column player gets 20 or 10. So clearly both the players will be better off by choosing the 1st option.   
+3. Similarly for the column player, the left row provides a payoff of 20 or 0. However, for those payoff boxes, the row player gets 20 or 10. So again both the players will be better off by choosing the 1st option.   
+4. However, if there is a doubt on the coordination of the other player, then both the players are better off choosing the 2nd choice.  
+
+# Rounds 21-25 periods: Nash Equilibrium   
+  
+```{r}
+game5_df = expand.grid(row_player = c('Choice1','Choice2'),
+                       col_player = c('Choice1','Choice2'),
+                       pay_out_player = c('row','column'),
+                       KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+game5_df$pay_out_value = c(11,10,-9,3,11,-9,10,3)
+
+game5_df %>% kable()
+```
+
+
+1. The Nash equilibrium will be *both the players choosing the 1st option* and *both the players choosing the 2nd option*.      
+2. For the row player, the top row provides a payoff of 11 or -9. However, for those payoff boxes, the column player gets 11 or 10. So both the players will be better off by choosing the 1st option.   
+3. Similarly for the column player, the left row provides a payoff of 11 or -9. However, for those payoff boxes, the row player gets 11 or 10. So again both the players will be better off by choosing the 1st option. Therefore, it is best in this case for both the players to choose the first option.   
+4. However, the risk is much higher if one of the players didnt cooprate. So depending the behaviour of the 1st few rounds, the players adjust themselves automatically. Thus there is a potential to move away from the payoff dominant pure Nash equilibirum and both the players move to the 2nd choice.  
+
+
+# Last 10 rounds: Nash equilibirum  
+
+```{r}
+last10df = df %>% 
+  filter(Round >= 16, Decision == 1) %>% 
+  group_by(Round) %>% 
+  summarize(Choice1 = n(), .groups = 'drop') %>% 
+  mutate(set = ifelse(Round < 21, '16-20','21-25'),
+         Round = ifelse(Round <21, Round-15, Round - 20))
+
+last10df %>% 
+  mutate(Round = as.character(Round)) %>% 
+  ggplot()+
+  aes(x = Round, y = Choice1, color = set, group = set)+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  theme(legend.title = element_blank(),
+        legend.position = c(0.9,0.15),
+        panel.grid = element_blank())+
+  scale_x_discrete(labels=c("1" = "16 or 21", 
+                            "2" = "17 or 22",
+                            "3" = "18 or 23",
+                            "4" = "19 or 24",
+                            "5" = "20 or 25"))+
+  ggtitle(label = "Last 10 Rounds",subtitle = "16-20: 0, 3, 10 & 20;  21-25: -9, 3, 10 & 11")
+```
+
+# Risk Vs Payoff dominant   
+
+Let us assume notation (1,1), (1,2), (2,1) and (2,2) as the potential choices for the 1st(row) and 2nd(column) player respectively. 
+
+## Case 16-20:  
+
+(20,20), (0,10), (10,0) and (3,3) are the payouts. Assuming equal probabilities for both the choices, the combined payout of choice 2 is *lower* than the combined payout of choice 1 for both the players. Hence (20,20) - Choice-1 is payoff dominant while (3,3) - Choice-2 is risk dominant.  
+
+
+
+## Case 21-25:  
+
+(11,11), (-9,10), (10,-9) and (3,3) are the payouts. Assuming equal probabilities for both the choices, the combined payout of choice 2 is *higher* than the combined payout of choice 1 for both the players. Hence (3,3) - Choice-2 is payoff dominant while (11,11) - Choice-1 is risk dominant.    
+
+
 
