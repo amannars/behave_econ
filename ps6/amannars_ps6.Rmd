@@ -1,0 +1,468 @@
+---
+title: "Problem Set-6"
+author: "Aravind Mannarswamy"
+date: "02/20/2022"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 3
+    fig_width: 5
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+---
+
+
+```{r header, echo = FALSE, message = FALSE, warning = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE,
+                      echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache.lazy = FALSE, 
+                      fig.align = "center", 
+                      fig.width = 6, 
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(gridExtra)
+library(openxlsx)
+library(DT)
+theme_set(new = theme_bw())
+df_first8 = read.xlsx(xlsxFile = "Lab6data.xlsx",sheet = "first8")
+df_second8 = read.xlsx(xlsxFile = "Lab6data.xlsx",sheet = "second8")
+df_last8 = read.xlsx(xlsxFile = "Lab6data.xlsx",sheet = "last8")
+
+```
+
+# Equilibirum for risk neutral  
+
+## Risk neutral bid at Equilibirum  
+
+Based on the equation in the text by Holt(page 496)   
+
+$b^* = \frac{(N-1)v}{(N-r)}$   
+
+Where   
+N is the number of bidders(4 in this case)   
+r = 0(because risk neutral)  
+b* is the equilibirum bid   
+v is the private value of the bid  
+
+Rearranging the above equation to get the fraction of the bid to the value,     
+
+$\frac{b^*}{v} = \frac{(N-1)}{(N-r)}$   
+
+$\frac{b^*}{v} = \frac{(4-1)}{(4-0)}$  
+
+$\frac{b^*}{v} = \frac{3}{4}$  
+
+$\frac{b^*}{v} = 0.75$  
+
+
+## Equilibirum expected sales revenue    
+
+$E(SR) = \frac{N-1}{N+1}V_{max}$   
+
+Where   
+
+$V_{max}$ is the maximum value of the draw(10 in this case)   
+
+Substituting for maximum value,  
+
+$E(SR) = \frac{4-1}{4+1}10$     
+
+$E(SR) = \frac{3 . 10}{5}$  
+
+$E(SR) = 6$  
+
+# First 8 Rounds - Data Analysis   
+
+Please note: In round-4, ID-4 had a private value of 0, which will make the bid to value undetermined. There is really no need for the bidder to participate over things that they dont value. This throws an error for any meaningful calculation. With that in mind, I had to remove this entry to make the calculations realistic.  
+
+
+
+```{r}
+bid_to_value_df = df_first8 %>% 
+  mutate(bid_to_value = Bid/PrivateValue) %>% 
+  select(Round, ID, PrivateValue, Bid, bid_to_value)
+
+
+```
+
+
+
+## Median of bid to value by bidders   
+
+```{r}
+bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value)) %>% 
+  arrange(median_bid_to_value)
+```
+
+
+```{r}
+low_ratio = bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  arrange(median_bid_to_value) %>% 
+  head(1) %>% 
+  mutate(position = 'lowest_ratio')
+
+high_ratio = bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  arrange(median_bid_to_value) %>% 
+  tail(1) %>% 
+  mutate(position = 'highest_ratio')
+
+low_ratio %>% 
+  bind_rows(high_ratio)
+
+
+```
+
+## Ratio compared to equilibrium   
+   
+```{r}
+bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  arrange(median_bid_to_value) %>% 
+  ggplot(aes(x = ID, y = median_bid_to_value))+
+  geom_point(color = "dodgerblue")+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0.75, color = "red", linetype = "dotted")+
+  annotate(geom = "text", x = 25, y = 0.77, label = "Equilibrium bid to Value line", color = "red")
+```
+
+
+
+
+```{r}
+bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  mutate(position = ifelse(median_bid_to_value < 0.75, 'below equilibrium', 
+                           ifelse(median_bid_to_value == 0.75, 'At equilibrium', 'above equilibrium'))) %>% 
+  group_by(position) %>% 
+  summarize(Count = n(), .groups = 'drop')
+```
+
+
+## Lets compare it to the auction markets   
+
+1. Comparing against the data and results presented in the text, this is not unusual. In the text, Holt explains that there is an increase of 0.167 bid to value instead of the expected 0.5 for the case he cited. In our case, the median of the class is 0.81 while the expected is about 0.75. Similarly, 32 of the 44 participants' ratio are above the 0.75 expected value.   
+2. Holt goes on to explain that this deviation is because of the risk aversion mentality. They would rather win the auction for a higher price and take a lower payout than getting zero payout.   
+3. So no, our class's behavior in the auction is not very different from the study explained by Holt.  
+
+# Second 8 rounds   
+
+## Nash equilibirum  
+
+Referencing Holt's text, page-490, though the mechanics of the first and second price auctions are slightly different, he was able to explain that they are in fact equivalent. With that in mind, the answers for the first question also applies here.   
+
+Based on the equation in the text by Holt(page 496)   
+
+$b^* = \frac{(N-1)v}{(N-r)}$   
+
+Where   
+N is the number of bidders(4 in this case)   
+r = 0(because risk neutral)  
+b* is the equilibirum bid   
+v is the private value of the bid  
+
+Rearranging the above equation to get the fraction of the bid to the value,     
+
+$\frac{b^*}{v} = \frac{(N-1)}{(N-r)}$   
+
+$\frac{b^*}{v} = \frac{(4-1)}{(4-0)}$  
+
+$\frac{b^*}{v} = \frac{3}{4}$  
+
+$\frac{b^*}{v} = 0.75$  
+
+
+## Equilibirum expected sales revenue    
+
+Again, referencing page-490 of Holt's text, the English and the Dutch auctions are equivalent. Therefore all the answers for the question-1 also applies here.   
+
+$E(SR) = \frac{N-1}{N+1}V_{max}$   
+
+Where   
+
+$V_{max}$ is the maximum value of the draw(10 in this case)   
+
+Substituting for maximum value,  
+
+$E(SR) = \frac{4-1}{4+1}10$     
+
+$E(SR) = \frac{3 . 10}{5}$  
+
+$E(SR) = 6$  
+
+# Second 8 Rounds - Data Analysis   
+
+Please note: In round-4, ID-4 had a private value of 0, which will make the bid to value undetermined. There is really no need for the bidder to participate over things that they dont value. This throws an error for any meaningful calculation. With that in mind, I had to remove this entry to make the calculations realistic.  
+
+
+## Median of bid to value by bidders   
+
+
+
+```{r}
+bid_to_value_df = df_second8 %>% 
+  mutate(bid_to_value = Bid/PrivateValue) %>% 
+  select(Round, ID, PrivateValue, Bid, bid_to_value)
+
+
+```
+
+
+```{r}
+bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value)) %>% 
+  arrange(median_bid_to_value)
+```
+
+
+```{r}
+low_ratio = bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  arrange(median_bid_to_value) %>% 
+  head(1) %>% 
+  mutate(position = 'lowest_ratio')
+
+high_ratio = bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  arrange(median_bid_to_value) %>% 
+  tail(1) %>% 
+  mutate(position = 'highest_ratio')
+
+low_ratio %>% 
+  bind_rows(high_ratio)
+
+
+```
+
+## Ratio compared to equilibrium   
+   
+```{r}
+bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  arrange(median_bid_to_value) %>% 
+  ggplot(aes(x = ID, y = median_bid_to_value))+
+  geom_point(color = "dodgerblue")+
+  theme(panel.grid = element_blank())+
+  geom_hline(yintercept = 0.75, color = "red", linetype = "dotted")+
+  annotate(geom = "text", x = 25, y = 0.77, label = "Equilibrium bid to Value line", color = "red")
+```
+
+
+
+
+```{r}
+bid_to_value_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_value = median(bid_to_value), .groups = 'drop') %>% 
+  mutate(position = ifelse(median_bid_to_value < 0.75, 'below equilibrium', 
+                           ifelse(median_bid_to_value == 0.75, 'At equilibrium', 'above equilibrium'))) %>% 
+  group_by(position) %>% 
+  summarize(Count = n(), .groups = 'drop')
+```
+
+
+## Lets compare it to the auction markets   
+
+1. In the reference text, Holt points out that the strategic equivalence of the Dutch and English auctions doesnt necessarily imply the behavioral equivalence of the bidders.  
+2. In our case, in the second price auction, almost all but one placed their bets almost equal to or more than the private value of the prize. They therefore reduced their payoffs. In some extreme cases, they have even lost value.  
+
+# Sales Revenue between the first two 8 rounds   
+
+## Average sales revenue   
+
+
+### First 8 rounds  
+
+```{r}
+df_first8 %>% 
+  filter(SellerRevenue > 0) %>% 
+  mutate(rounds = 'first8') %>% 
+  pull(SellerRevenue) %>% 
+  summary()
+
+```
+
+
+
+### Second 8 rounds  
+```{r}
+
+df_second8 %>% 
+  filter(SellerRevenue > 0) %>% 
+  mutate(rounds = 'second8') %>% 
+  pull(SellerRevenue) %>% 
+  summary()
+
+```
+
+
+## How does it compare   
+
+```{r}
+df_first8 %>% 
+  filter(SellerRevenue > 0) %>% 
+  mutate(rounds = 'first8') %>% 
+  bind_rows(df_second8 %>% 
+  filter(SellerRevenue > 0) %>% 
+  mutate(rounds = 'second8')) %>% 
+  ggplot()+
+  aes(x = Round, y = SellerRevenue, color = rounds)+
+  geom_point()+
+  theme(panel.grid = element_blank(),
+        legend.position = c(0.1,0.13))+
+  geom_hline(yintercept = 6, color = "brown", linetype = "dashed")+
+  annotate(geom = "text", x = 13, y = 6.2, label = "Equilibrium Seller Revenue", color = "brown")+
+  scale_y_continuous(breaks = seq(0,10))
+
+```
+
+
+Key observations:   
+1. No, there is difference between the average seller's revenue between the two cases.  
+2. In the first 8 rounds, the average seller's revenue is greater than the second 8 rounds. This is in violation of what one would expect given the fact that these two types of auctions are strategically the same.  
+3. One of the main reasons is that the average bid to value ratio is closer to 1 for the second 8 rounds than the first 8 rounds. This is likely the main reason why there is a difference. During the second 8 rounds, the bidder assumes that the value of the second bidding cost is likely much lower than the estimated private value of the auction. This is in turn gives rise to riskier bahavior from the bidder.   
+
+# Final 8 rounds: Equilibirum   
+
+$bid = \frac{(N-1)(N+2)}{2N^2}signal$  
+
+where N = 4, given there are 4 bidders   
+
+Substituting the value of N = 4,  
+
+$bid = \frac{(4-1)(4+2)}{2.4^2}signal$  
+
+$bid = \frac{(3)(6)}{2.16}signal$  
+
+$bid = \frac{9}{16}signal$  
+
+In equilibrium, 9/16th of the signal would a bidder bid in these final 8 rounds.  
+
+Yes, bidding this equilirbrium fraction ensures that the bidder cannot lose money in the long run.  
+
+# Final 8 rounds: Data   
+
+
+```{r}
+bid_to_signal_df = df_last8 %>% 
+  mutate(bid_to_signal = Bid/Signal) %>% 
+  select(Round, ID, Signal, Bid, bid_to_signal)
+
+bid_to_signal_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_signal = median(bid_to_signal)) %>% 
+  arrange(median_bid_to_signal)
+  
+
+```
+
+
+## Highest and lowest ratio of bid to signal by ID  
+
+```{r}
+low_bid_to_signal = bid_to_signal_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_signal = median(bid_to_signal), .groups = 'drop') %>% 
+  arrange(median_bid_to_signal) %>% 
+  head(1) %>% 
+  mutate(position = "lowest")
+
+high_bid_to_signal = bid_to_signal_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_signal = median(bid_to_signal), .groups = 'drop') %>% 
+  arrange(median_bid_to_signal) %>% 
+  tail(1) %>% 
+  mutate(position = "highest")
+
+low_bid_to_signal %>% 
+  bind_rows(high_bid_to_signal)
+```
+
+## How does it compare to the equilibrium   
+
+```{r}
+bid_to_signal_df %>% 
+  group_by(ID) %>% 
+  summarize(median_bid_to_signal = median(bid_to_signal), .groups = 'drop') %>% 
+  arrange(median_bid_to_signal) %>% 
+  mutate(position = ifelse(median_bid_to_signal < 9/16, 
+                           'less_than_equilibrium_ratio',
+                           ifelse(median_bid_to_signal == 9/16, 
+                                  'equal_to_equilibrium_ratio',
+                                  'more_than_equilibrium_ratio'))) %>% 
+  group_by(position) %>% 
+  summarize(Count = n(), .groups = 'drop')
+```
+
+
+38 out of 44 bidders had their bid to signal ratio more than the equilibrium ratio.  
+
+
+# Winner's curse  
+
+## Proportion of negative payoffs   
+
+```{r}
+winners_curse_df = df_last8 %>% 
+  filter(Earnings != 0) %>% 
+  select(Round, ID, Earnings) %>% 
+  mutate(position = ifelse(Earnings < 0, 'negative',ifelse(Earnings == 0, 'neutral','positive')))
+
+winners_curse_df %>% 
+  group_by(position) %>% 
+  summarize(Count = n(), .groups = 'drop')
+  
+
+```
+
+64 out of 88 auctions had a negative payoffs.  
+
+
+## Trend of negative payoffs   
+
+```{r}
+winners_curse_df %>% 
+  group_by(Round, position) %>% 
+  summarize(Count = n(), .groups = 'drop') %>% 
+  ggplot(aes(x = Round, y = Count/11, fill = position, color = position))+
+  geom_col(alpha = 0.5)+
+  scale_y_continuous(breaks = seq(0,1, by = 0.1))+
+  scale_x_continuous(breaks = seq(0,10, by = 1))+
+  theme(panel.grid = element_blank())+
+  ylab("Fraction of profits")
+  
+
+```
+
+
+## Winners curse at play   
+
+1. Winners curse is defined as not knowing the intrinsic value of the 'item' being auctioned until the bidder wins it.  
+2. Yes, it is likely the case in the last 8 rounds. The winner of the bid does not know the intrinsic value of the auctioned item as it also depends on the signal of the other 3 bidders. If their signal is the lowest, then they are in luck. However, if their signal is highest, then not so much because of the averaging effect. With this in mind, the winner has no idea what the real value of the prize is until they win it. This in theory make it is 50/50 proposition and I would have expected 50% of the payoffs to be negative and 50% of the payoffs to be positive.   
+3. However, the negative payoffs were much higher than the postive ones. This is a deviation from the expected. 
+
+
+
+
+
+
+
+
