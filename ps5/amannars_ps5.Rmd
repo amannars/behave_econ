@@ -1,0 +1,231 @@
+---
+title: "Problem Set-5"
+author: "Aravind Mannarswamy"
+date: "02/13/2022"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 3
+    fig_width: 5
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+---
+
+
+```{r header, echo = FALSE, message = FALSE, warning = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE,
+                      echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache.lazy = FALSE, 
+                      fig.align = "center", 
+                      fig.width = 6, 
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(gridExtra)
+library(openxlsx)
+library(DT)
+
+df = read.xlsx(xlsxFile = "Lab5data.xlsx",sheet = "Rounds1_10")
+df2 = read.xlsx(xlsxFile = "Lab5data.xlsx",sheet = "Final10Rounds")
+```
+
+
+# MPCR   
+
+For every token invested, the group gets 3.20(0.80 times 4) in return, which gets distributed to the group of 4.   
+
+MPCR = 3.20/4 = 0.80   
+
+It is also best to consider that on an average, the per capita investment is also 0.25(for every dollar invested by someone to the public pool is like the group of 4 contributing 0.25 each). With this in context, you could argue that it is actually 0.8/0.25 = 3.20   
+
+
+# Workings of the experiment - 1st 5 rounds       
+
+## All 4 put in their private accounts    
+
+Individual Return = 1 * tokens kept + 0.8 * tokens contributed by everyone   
+
+This would mean that, every individual will get exactly 25 tokens as no one invests in the public good.   
+
+
+## All 4 put in their group investment account   
+
+Individual Return = 1 * tokens kept + 0.8 * tokens contributed by everyone   
+
+this would be 1 * 0 + (25 x 4) * 0.8 = 80 tokens. SO everyone will get exactly 80 tokens.   
+
+
+## All but you invest: Your return      
+
+Return = 1 * 25 + (3 x 25) * 0.8 = 25 + 60 = 85 tokens   
+
+## All but you invest: Others return   
+
+Others return = 0 * 25 + (3 x 25) * 0.8 = 60 tokens   
+
+
+# Nash Equilibrium  
+
+The only way to maximize the payoffs is not invest and that everyone else invest. With this in mind, everyone will decide not to invest to the public pool at all. Hence the Nash equilibrium is that no one invest in the public. This is also the dominant equlibrium because every player maximizes their payoff by choosing this option everytime regardless of what the others decide to do.   
+
+# MPCR 2nd 5 rounds   
+
+Similar to the first problem, every dollar invested returns 1.20 for the group and becomes 0.30 for every person in the group. So the MPCR is 0.30   
+
+# Workings of the experiment - 2nd 5 rounds       
+
+## All 4 put in their private accounts    
+
+Individual Return = 1 * tokens kept + 0.3 * tokens contributed by everyone   
+
+This would mean that, every individual will get exactly 25 tokens as no one invests in the public good.   
+
+
+## All 4 put in their group investment account   
+
+Individual Return = 1 * tokens kept + 0.3 * tokens contributed by everyone   
+
+this would be 1 * 0 + (25 x 4) * 0.3 = 30 tokens. SO everyone will get exactly 30 tokens.   
+
+
+## All but you invest: Your return      
+
+Return = 1 * 25 + (3 x 25) * 0.3 = 25 + 22.5 = 47.5 tokens   
+
+## All but you invest: Others return   
+
+Others return = 0 * 25 + (3 x 25) * 0.3 = 22.5 tokens   
+
+# Nash Equilibrium - 2nd 5 rounds   
+
+No, this change in payout should not change the Nash equilibirum and the dominant strategy.   
+
+```{r}
+group = rep(sort(rep(seq(1,11),4)),10)
+df$group = group
+df5_summ = df %>% 
+  group_by(Round) %>% 
+  summarize(contributed = sum(Contribution), 
+            total_alloted = 25 * 4 * 11,
+            fraction_contributed = contributed/total_alloted,
+            .groups = 'drop') %>% 
+    mutate(set = ifelse(Round < 6, 'First5','Second5'),
+         Round_alt = ifelse(Round <6, Round, Round - 5))
+
+df5_summ %>% 
+  mutate(Round_alt = as.character(Round_alt)) %>% 
+  ggplot()+
+  aes(x = Round_alt, y = fraction_contributed, color = set, group = set)+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  theme(legend.title = element_blank(),
+        legend.position = c(0.9,0.15),
+        panel.grid = element_blank())+
+  scale_x_discrete(labels=c("1" = "1 or 6", 
+                            "2" = "2 or 7",
+                            "3" = "3 or 8",
+                            "4" = "4 or 9",
+                            "5" = "5 or 10"))+
+  ggtitle(label = "First 10 Rounds")+
+  scale_y_continuous(breaks = seq(0,1,.1), limits = c(0,1))
+
+```
+
+
+# Free riders   
+
+```{r}
+df5_free_rider = df %>% 
+  mutate(strong_free_rider = ifelse(Contribution < 25/3, 1, 0)) %>% 
+  group_by(Round) %>% 
+  summarize(Strong_Free_Riders = sum(strong_free_rider), .groups = 'drop') %>% 
+  mutate(fraction_Strong_Free_Riders = Strong_Free_Riders/44) %>% 
+  mutate(set = ifelse(Round < 6, 'First5','Second5'),
+         Round_alt = ifelse(Round <6, Round, Round - 5))
+
+
+df5_free_rider %>% 
+  mutate(Round_alt = as.character(Round_alt)) %>% 
+  ggplot()+
+  aes(x = Round_alt, y = fraction_Strong_Free_Riders, color = set, group = set)+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  theme(legend.title = element_blank(),
+        legend.position = c(0.9,0.15),
+        panel.grid = element_blank())+
+  scale_x_discrete(labels=c("1" = "1 or 6", 
+                            "2" = "2 or 7",
+                            "3" = "3 or 8",
+                            "4" = "4 or 9",
+                            "5" = "5 or 10"))+
+  ggtitle(label = "First 10 Rounds")+
+  scale_y_continuous(breaks = seq(0,1,.1), limits = c(0,1))
+
+
+```
+
+
+
+# Is there a difference in the two treatments   
+
+Yes, there is significant difference between the first 5 rounds and the 2nd 5 rounds in terms of how the players behaved. Though the dominant equilibrium(which is also the Nash equilibrium) is the same in both the cases, for the 1st case, every dollar invested comes back as 0.80 dollar. Hence the risk of others not contributing was only 0.2. However, in the 2nd 5 rounds, every dollar invested has only a guaranteed return of 0.3, and especially if the others do not contyribute, they lose significantly compared to the free riders. This is likely the biggest driver of the behavior change.   
+
+# Final 5 rounds   
+
+## Incentive to spend to punish   
+
+No, there is no individual incentive to spend points to punish. Similar to lab-4, a profit maximizing individual should not spend their money for no returns. However, that is not the case with this dataset. This is probably because of the probable perception of what is 'fair' and what is not.   
+
+## Punishment points over time   
+
+```{r}
+punish_point_df = df2 %>% 
+  filter(Round > 5) %>% 
+  group_by(Round) %>% 
+  summarize(PunishPointsAssigned = sum(PunishPointsSent), .groups = 'drop')
+
+punish_point_df %>% 
+  ggplot(aes(x = Round, y = PunishPointsAssigned))+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  annotate(geom = "text", x = punish_point_df$Round, y = punish_point_df$PunishPointsAssigned+5,label = punish_point_df$PunishPointsAssigned)
+```
+
+```{r}
+df2 %<>% 
+  mutate(strong_free_rider = ifelse(Contribution < 25/3, 'Strong_Free_Rider', 'Not_a_Strong_free_rider')) 
+
+df2 %>% 
+  filter(Round > 5) %>% 
+  group_by(Round, strong_free_rider) %>% 
+  summarize(PunishPointsReceived = sum(PunishmentReceived), .groups = 'drop') %>% 
+  ggplot(aes(x = Round, y = PunishPointsReceived, color = strong_free_rider))+
+  geom_point()+
+  geom_line()+
+  theme_bw()
+```
+
+In general, anyone who doesnt contribute to the 'socially acceptable level' are likely to be penalized, regardless of whether they are strong free riders or not. The reason could be that, the game involes the same players and so the punishment acts as a deterent in the subsequent rounds. This is also evident by the way how the punishment points declines as the rounds went on.  
+
+
+## Punishment Vs Contribution   
+
+```{r}
+df2 %>%  
+  group_by(Round) %>% 
+  summarize(PunishmentSent = sum(PunishPointsSent),
+            Total_Contribution = sum(Contribution), .groups = 'drop') %>% 
+  kable()
+```
+
+Yes, the punishment opportunities affected the contribution levels for these final rounds. Comparing the contributions of the first 5 rounds to the later 5 rounds, it is evident that there is significant increase in the contribution levels. Particularly, the players contributed much higher in the rounds 7 to 10.   
+

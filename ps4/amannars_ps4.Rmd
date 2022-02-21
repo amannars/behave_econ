@@ -1,0 +1,364 @@
+---
+title: "Problem Set-4"
+author: "Aravind Mannarswamy"
+date: "02/30/2022"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 3
+    fig_width: 5
+    number_sections: yes
+    toc: yes
+    toc_depth: 3
+---
+
+
+```{r header, echo = FALSE, message = FALSE, warning = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE,
+                      echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache.lazy = FALSE, 
+                      fig.align = "center", 
+                      fig.width = 6, 
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(gridExtra)
+library(openxlsx)
+library(DT)
+
+df = read.xlsx(xlsxFile = "Lab4data.xlsx",sheet = "Rounds 1-10")
+```
+
+\newpage  
+
+# First 5 rounds - Equilibrium   
+
+1. The equlibirum for this transaction will be that the responder will accept any amount given by the proposer.   
+2. Applying the principle of backward induction, the responder will lose any money if they reject the proposal and therefore they should accept any amount that is different from 0. The proposer will know this and offer a small amount that is different from 0.  
+3. Since the minimum amount that can be proposed is zero and the next is 1, the smallest amount different from 0 is 1. Therefore the equilibrium will be that the proposer offers 1 to the responder and the responder will accept that choice.  
+
+# First 5 rounds - Equilibirum and data   
+
+## Average of the first 5 rounds  
+
+```{r}
+df %>% 
+  filter(Round <= 5) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffered = 10 - mean(ProposerDemand), .groups = 'drop')
+```
+
+## Did the offer increase or decrease across the rounds   
+
+```{r}
+df %>% 
+  filter(Round <= 5) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffered = 10 - mean(ProposerDemand), .groups = 'drop') %>% 
+  ggplot()+
+  aes(x = Round, y = AvgOffered)+
+  geom_point()+
+  geom_line(group = 1)+
+  scale_y_continuous(limits = c(0,10))
+```
+ The offer stayed relatively constant with values slightly below 5, which is the mid-point of the total pie equal to 10.   
+ 
+## Highest and lowest offer   
+ 
+```{r}
+df %>% 
+  filter(Round <= 5) %>% 
+  group_by(Round) %>% 
+  summarize(HighestOffered = 10 - min(ProposerDemand),
+            LowestOffered = 10 - max(ProposerDemand),
+            .groups = 'drop')
+```
+
+## Modal offers   
+
+```{r}
+df %>% 
+  filter(Round <= 5) %>% 
+  mutate(ProposerOffer = 10 - ProposerDemand) %>% 
+  ggplot()+
+  aes(x = ProposerOffer, fill = Response)+
+  geom_bar()+
+  facet_wrap(~Round, nrow = 2)
+  
+```
+
+The modal offer is 5 in these 5 rounds. The ones in blue are rejected while the red ones are accepted.   
+
+## Equilibrium offers   
+
+```{r}
+df %>% 
+  filter(Round <= 5, ProposerDemand == 9) %>% 
+  group_by(Round, Response) %>% 
+  summarize(AtEquilibrium = n(), .groups = 'drop') %>% 
+  pivot_wider(names_from = Response, values_from = AtEquilibrium)
+  
+```
+
+Rounds 3, 4 and 5 did not have any equilibirum offers.   
+
+# Fehr-Schmidt inequality   
+
+## alpha = 0.5, beta = 0   
+
+
+```{r}
+max_amount = 10
+xj = seq(0,max_amount)
+xi = max_amount-xj
+alpha = 0.5
+beta = 0
+xj_xi = xj - xi
+xi_xj = xi - xj
+df31 = data.frame(xi = xi, xj = xj, xj_xi = xj_xi, xi_xj = xi_xj) %>% 
+  mutate(t2 = ifelse(0 > xj_xi, 0, xj_xi),
+         t3 = ifelse(0 > xi_xj, 0, xi_xj),
+         Ui = xi - alpha*t2 - beta*t3)
+df31 %>% 
+  ggplot()+
+  aes(x = xi, y = Ui)+
+  geom_point(color = "dodgerblue")+
+  geom_line(group = 1, color = "red")+
+  theme_bw()+
+  xlab("Monetary earnings of Individual 'i'")+
+  ylab("Utility of Individual 'i'")+
+  scale_x_continuous(breaks = seq(0,10,1))+
+  ggtitle(label = "Monetary income Vs Utility of 'i'")+
+  geom_hline(yintercept = 0, linetype = "dashed")
+```
+
+This responder would accept any value that has a positive utility. That would correspond to any value 3 or greater.   
+
+
+
+## alpha = 1, beta = 0   
+
+
+```{r}
+max_amount = 10
+xj = seq(0,max_amount)
+xi = max_amount-xj
+alpha = 1
+beta = 0
+xj_xi = xj - xi
+xi_xj = xi - xj
+df32 = data.frame(xi = xi, xj = xj, xj_xi = xj_xi, xi_xj = xi_xj) %>% 
+  mutate(t2 = ifelse(0 > xj_xi, 0, xj_xi),
+         t3 = ifelse(0 > xi_xj, 0, xi_xj),
+         Ui = xi - alpha*t2 - beta*t3)
+df32 %>% 
+  ggplot()+
+  aes(x = xi, y = Ui)+
+  geom_point(color = "dodgerblue")+
+  geom_line(group = 1, color = "red")+
+  theme_bw()+
+  xlab("Monetary earnings of Individual 'i'")+
+  ylab("Utility of Individual 'i'")+
+  scale_x_continuous(breaks = seq(0,10,1))+
+  ggtitle(label = "Monetary income Vs Utility of 'i'")+
+  geom_hline(yintercept = 0, linetype = "dashed")
+```
+
+This responder would accept any value that has a positive utility. That would correspond to any value 4 or greater.   
+
+# Second 5 Rounds - Equilibrium    
+
+1. The equlibirum for this transaction will be that the responder will accept any amount given by the proposer.   
+2. Applying the principle of backward induction, the responder will have 6 no matter what. They however lose any additional money if they reject the proposal and therefore they should accept any amount that is different from 0. The proposer will know this and offer a small amount that is different from 0.  
+3. Since the minimum amount that can be proposed is zero and the next is 1, the smallest amount different from 0 is 1. Therefore the equilibrium will be that the proposer offers 1 to the responder and the responder will accept that choice. Hence the proposer will have 9 and the responder will have 7(1 from proposer and 6 from the game default).   
+
+\newpage
+
+# Second 5 Rounds - Equilibrium and data   
+
+
+
+## Average of the first 5 rounds  
+
+```{r}
+df %>% 
+  filter(Round > 5 & Round <= 10) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffered = 10 - mean(ProposerDemand), .groups = 'drop')
+```
+
+## Did the offer increase or decrease across the rounds   
+
+```{r}
+df %>% 
+  filter(Round > 5 & Round <= 10) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffered = 10 - mean(ProposerDemand), .groups = 'drop') %>% 
+  ggplot()+
+  aes(x = Round, y = AvgOffered)+
+  geom_point()+
+  geom_line(group = 1)+
+  scale_y_continuous(limits = c(0,10), breaks = seq(0,10,1))
+```
+ The offer stayed relatively constant with values slightly below 4.     
+ 
+## Highest and lowest offer   
+ 
+```{r}
+df %>% 
+  filter(Round > 5 & Round <= 10) %>% 
+  group_by(Round) %>% 
+  summarize(HighestOffered = 10 - min(ProposerDemand),
+            LowestOffered = 10 - max(ProposerDemand),
+            .groups = 'drop')
+```
+
+## Modal offers   
+
+```{r}
+df %>% 
+  filter(Round > 5 & Round <= 10) %>% 
+  mutate(ProposerOffer = 10 - ProposerDemand) %>% 
+  ggplot()+
+  aes(x = ProposerOffer, fill = Response)+
+  geom_bar()+
+  facet_wrap(~Round, nrow = 2)
+  
+```
+
+The modal offer is 2 in these 5 rounds.  
+
+## Equilibrium offers   
+
+```{r}
+df %>% 
+  filter(Round > 5, Round<=10, ProposerDemand == 9) %>% 
+  group_by(Round, Response) %>% 
+  summarize(AtEquilibrium = n(), .groups = 'drop') %>% 
+  pivot_wider(names_from = Response, values_from = AtEquilibrium)
+  
+```
+
+Rounds 7, 8, 9 and 10 did not have any equilibirum offers. In fact there was exactly one offer equlibrium across all the rounds in the 2nd 5 rounds.      
+
+
+# How did the average offer change between the first 5 and the second 5 rounds   
+
+
+```{r}
+first10df = df %>% 
+  filter(Round <= 10) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffer = 10 - mean(ProposerDemand), .groups = 'drop') %>% 
+  mutate(set = ifelse(Round < 6, 'First5','Second5'),
+         Round = ifelse(Round <6, Round, Round - 5))
+
+first10df %>% 
+  mutate(Round = as.character(Round)) %>% 
+  ggplot()+
+  aes(x = Round, y = AvgOffer, color = set, group = set)+
+  geom_point()+
+  geom_line()+
+  theme_bw()+
+  theme(legend.title = element_blank(),
+        legend.position = c(0.9,0.15),
+        panel.grid = element_blank())+
+  scale_x_discrete(labels=c("1" = "1 or 6", 
+                            "2" = "2 or 7",
+                            "3" = "3 or 8",
+                            "4" = "4 or 9",
+                            "5" = "5 or 10"))+
+  ggtitle(label = "First 10 Rounds")+
+  scale_y_continuous(breaks = seq(0,10,1), limits = c(0,10))
+```
+
+
+1. From a purely rational or economic perspective, the average offers in both the cases should have been 1.  
+2. However, that is not the case and that the average offer for the 2nd round is lower than the first round.  
+3. According to the text, based on the experimental study by Guth, "*the main reason seems to be that the rational solution is not considered as socially acceptable or fair*". That very well explains the situation here. In the first 5 rounds, an even split appeared to be what is considered socially acceptable while for the 2nd 5 rounds, it is around 8. Making the proposer offer 2 while the responder accepts that offer.   
+
+# Can the Fehr Schmidt utility mode; of inequality aversion explain the difference   
+1. Yes, it can explain the difference. In the first 5 rounds, when the responder rejected any offer less than 5, they were fine with both the proposer and the responder getting 0. This is equitable in the given scenario.   
+2. During the 2nd five rounds, the even split moved from 5 to 8(10+6 split in two) with the proposer offering 2. In this case, the responder is very well aware that the proposer will get 0 if they reject it. The responders still decided to favor socially acceptable splits and therefore making the proposer poorer. This explains that alpha > beta is still in play.   
+
+# Multi stage bargaining equilibrium   
+
+1. refering the handout from the course website, the initial proposer earns the amount by which the pie shrinks and the responder will make the final round's pie. Therefore, the proposer will earn 7 while the responder will earn 3.  
+2. Explanation: If the first proposer offers any value less than 3, the offer will be rejected because in the 2nd stage, the responder becomes the proposer. Since the offer is already rejected, only 3 remains in the pie. Therefore the responder(aka proposer for the 2nd round) will offer just 1 and the proposer(aka responder for the 2nd round) will gladly accept because it is greater than 0.  
+3. To avoid the above scenario, the proposer will offer 3 to the responder. With that value, the responder knows that rejecting it will decrease the pie size and they will end up with less than 3. So to avoid that the responder will also accept 3 while the proposer keeps 7.   
+
+# Last 5 rounds - Equilibirum and data   
+
+## Average of the last 5 rounds  
+
+```{r}
+df2 = read.xlsx(xlsxFile = "Lab4data.xlsx",sheet = "Final 5 Rounds")
+```
+
+
+```{r}
+df2 %>% 
+  filter(Round <= 5) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffered = 10 - mean(ProposerDemand), .groups = 'drop')
+```
+
+## Did the offer increase or decrease across the rounds   
+
+```{r}
+df2 %>% 
+  filter(Round <= 5) %>% 
+  group_by(Round) %>% 
+  summarize(AvgOffered = 10 - mean(ProposerDemand), .groups = 'drop') %>% 
+  ggplot()+
+  aes(x = Round, y = AvgOffered)+
+  geom_point()+
+  geom_line(group = 1)+
+  scale_y_continuous(limits = c(0,10))
+```
+ The offer decrease slowly with each round with values slightly below 5 approaching to slightly above 4 while the equilibrium is actually 3.  
+ 
+## Highest and lowest offer   
+ 
+```{r}
+df2 %>% 
+  filter(Round <= 5) %>% 
+  group_by(Round) %>% 
+  summarize(HighestOffered = 10 - min(ProposerDemand),
+            LowestOffered = 10 - max(ProposerDemand),
+            .groups = 'drop')
+```
+
+## Modal offers   
+
+```{r}
+df2 %>% 
+  filter(Round <= 5) %>% 
+  mutate(ProposerOffer = 10 - ProposerDemand) %>% 
+  ggplot()+
+  aes(x = ProposerOffer, fill = Response)+
+  geom_bar()+
+  facet_wrap(~Round, nrow = 2)
+  
+```
+
+The modal offer is 5 in these 5 rounds. The ones in blue are rejected while the red ones are accepted.   
+
+## Equilibrium offers   
+
+```{r}
+df %>% 
+  filter(Round > 5, ProposerDemand == 7) %>% 
+  group_by(Round, Response) %>% 
+  summarize(AtEquilibrium = n(), .groups = 'drop') %>% 
+  pivot_wider(names_from = Response, values_from = AtEquilibrium)
+  
+```
+
+
+

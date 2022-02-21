@@ -1,0 +1,150 @@
+---
+title: "Midterm Exam-1"
+author: "Aravind Mannarswamy"
+date: "02/06/2022"
+output:
+  pdf_document:
+    fig_caption: yes
+    fig_height: 4
+    fig_width: 6
+    number_sections: yes
+    toc: yes
+    toc_depth: 4
+---
+
+
+```{r header, echo = FALSE, message = FALSE, warning = FALSE}
+
+library(knitr)
+knitr::opts_chunk$set(cache = TRUE,
+                      echo = FALSE, 
+                      message = FALSE, 
+                      warning = FALSE, 
+                      cache.lazy = FALSE, 
+                      fig.align = "center", 
+                      fig.width = 6, 
+                      fig.height = 4)
+library(tidyverse)
+library(magrittr)
+library(scales)
+library(gridExtra)
+library(openxlsx)
+library(DT)
+
+```
+
+\newpage  
+
+# Part-1   
+
+## Inequity aversion utility funtion    
+
+*FALSE*. If $\alpha_i \le \beta_i$, that would infer that the individual would be more willing to have lesser than the other player, though the player supports equity. That cannot be the choice of a rational individual even if they prefer inequity aversion.  
+
+## Trust game   
+
+*FALSE*. 
+
+
+```{r}
+xj = seq(0,200)
+xi = 200-xj
+alpha = 0.4
+beta = 0.4
+xj_xi = xj - xi
+xi_xj = xi - xj
+df2 = data.frame(xi = xi, xj = xj, xj_xi = xj_xi, xi_xj = xi_xj) %>% 
+  mutate(t2 = ifelse(0 > xj_xi, 0, xj_xi),
+         t3 = ifelse(0 > xi_xj, 0, xi_xj),
+         Ui = xi - alpha*t2 - beta*t3)
+df2 %>% 
+  ggplot()+
+  aes(x = xi, y = Ui)+
+  geom_point(color = "dodgerblue")+
+  geom_line(group = 1, color = "red")+
+  theme_bw()+
+  xlab("Monetary earnings of Individual 'i'")+
+  ylab("Utility of Individual 'i'")+
+#  scale_x_continuous(breaks = seq(0,30,5))+
+  ggtitle(label = "Monetary income Vs Utility of 'i'")
+```
+
+The second player has no incentive to send any back to the first player. Though the marginal utility of any amount over 100 is less than the marginal utility less than 100, it is still not less than 0.  
+
+## Own payoff maximizing    
+
+*FALSE*.  
+
+If it is a one shot game, then 'confess' is the best strategy for both the players. However, when the number of rounds are repeated for a fixed number of times, then it will have multiple strategies except for the last round where the dominant strategy will be the same as the one shot game. However, in the indefinite game, the players get an opportunity to learn to cooperate. Or at least they cooperate till the first one decides to confess.   
+  
+## Expected utility theory  
+  
+*TRUE*   
+  
+u(12) > 0.7u(20) + 0.3u(0) is the first choice.  
+
+Multiplying the inequality with 0.2,   
+
+0.2u(12) > 0.14u(20) + 0.06u(0)   
+
+Now adding the irrelevant part 0.8u(0),   
+
+0.2u(12) + 0.8u(0) > 0.14u(20) + 0.06u(0) + 0.8u(0)   
+
+0.2u(12) + 0.8u(0) > 0.14u(20) + 0.8u(0)   
+
+Therefore,  
+
+0.2u(12) > 0.14u(20).   
+
+Since the choices between the lottery-1 and lottery-2 are not consistent, it is evident that they are not consistent with the expected utility theory.  
+
+## *TRUE*. Refering to the following analysis, Gamble-3 is the optimal choice.      
+
+```{r}
+data.frame(heads = c(4,6,8,10,12), tails = c(4,3,2,1,0)) %>% 
+  mutate(heads_util = (heads^0.5)/0.5,
+         tails_util = (tails^0.5)/0.5,
+         joint_util = 0.5 * heads_util + 0.5 * tails_util)
+```
+
+
+# Part-2   
+
+## Own payoff maximizing assumption   
+
+### Is the behavior different from Nash equilibirum for a known and fixed number of rounds      
+
+Yes(assuming that the game happens with the same players each round). The case in point is the class lab-2 where choice two is the Nash equilibrium but that not everyone choose that option to begin with. A significant number of people choose to cooperate in the first few rounds. But once they realize that the coordination was not reciprocated, they resort to the dmonant strategy - Nash equilibirum which is to choose Option-2. Hence they approach the option (2,2) as they move to past the initial rounds.      
+
+### Is the behavior different with random benchmarking of new players each round   
+
+Yes. When new players are matched for each round, there is no incentive to cooperate as there is no recourse with the same player. So by the principle of backward induction, they anticipate that the optimal choice for the other person is to choose option-2 and hence they will also choose option-2. This is also evident from the same lab exercise. When the two curves for the first 5 rounds are overlayed, new players each round had significantly more people choosing (2,2) compared to the same players for all the rounds.      
+
+## Trust Game   
+
+### Nash Equilibrium   
+
+The standard Nash equilibirum will be that the players do not exchange any money at all.  
+
+#### Why is this the case?   
+
+1. The first player can transfer any money between 0 and 500, which will get tripled when the 2nd player receives it. And the 2nd player can send any money back to the first player. To understand what will be the Nash equilibrium, we have to use the principle of backward induction.   
+2. The 1st player has to anticipate what the 2nd player will do in order to make his decision. The 2nd player, who wants to maximize the money, should send no money in return at all. There is no incentive for the 2nd person to send money back to the 1st.   
+3. The 1st player will realize that and will also decide not to send any money at all so as to maximize their own money.   
+
+## What about repeated games   
+
+It depends on whether the game is repeated finitely or infinitely.  
+
+### Repeated for finite rounds   
+
+1. In this game, the 2nd player has an incentive to send money back to the 1st player so as to benefit from future transfers. Knowing this, the first player may transfer money to the 1st to test the trsutworthiness of the 2nd player. If the 2nd player return money back, they will continue to send the money in the next round.   
+2. This can happen till about the pen-ultimate round. Because at the last round, the 2nd player has no incentive to send it back. Knowing this, the first person will also not send any money to the 2nd player in the last round to begin with.  
+3. Such games have multiple sub-perfect equilibria.   
+
+### Repeated for indefnite rounds   
+
+1. In this case, both the players have the propensity to cooperate as there is the sense of endless future up until which they have to coordinate.  
+2. The real difference in both the strategies comes in knowing how the game(rather when the game) will end.   
+
